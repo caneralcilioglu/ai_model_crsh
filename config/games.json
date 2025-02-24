@@ -5,6 +5,7 @@
             "gameId": "galaxys_crash",
             "prediction_file": "galaxys_crash.py",
             "data_type": "json",
+            "track_type" : "browser",
             "crash_key": "game_result",
             "prediction_key": "FinishRound"   
         },
@@ -13,6 +14,7 @@
             "gameId": "galaxys_hamstermania",
             "prediction_file": "galaxys_hamstermania.py",
             "data_type": "json",
+            "track_type" : "socket",
             "crash_key": "game_result",
             "prediction_key": "GameEnded"   
         }
