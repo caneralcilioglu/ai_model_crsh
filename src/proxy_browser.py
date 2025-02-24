@@ -1,28 +1,44 @@
 from playwright.sync_api import sync_playwright
-import json
-
-def handle_ws_message(ws_message):
-    print(f"WebSocket mesajı: {ws_message.text}")
 
 def start_browser(selected_game):
-    with sync_playwright() as p:
-        browser = p.chromium.launch(headless=False)
-        context = browser.new_context()
+    with sync_playwright() as playwright:
+        # Tarayıcıyı başlatma ve detaylı konfigürasyon ayarları
+        browser = playwright.chromium.launch(headless=False, args=["--disable-web-security", "--allow-running-insecure-content"])
+        context = browser.new_context(ignore_https_errors=True)
         page = context.new_page()
 
-        # İlk olarak google.com'u açın
-        page.goto("https://google.com")
-        
-        # Kullanıcının siteye ulaşması ve login olması için yeterli süre bekleyin
-        input("Siteye ulaşın ve login olun, ardından devam etmek için Enter tuşuna basın...")
+        # WebSocket mesajlarını yakalama
+        websocket_messages = []
 
-        # WebSocket URL'sini dinleyin
-        ws_url = input("Lütfen WebSocket URL'sini girin: ")
+        def handle_websocket(ws):
+            print(f"WebSocket açıldı: {ws.url}")
+            ws.on("framesent", lambda frame: websocket_messages.append(f"Sent: {frame.payload}"))
+            ws.on("framereceived", lambda frame: websocket_messages.append(f"Received: {frame.payload}"))
 
-        # Belirli WebSocket URL'sini dinlemek için filtreleme ekleyin
-        context.on("websocket", lambda ws: ws.url == ws_url and ws.on("framereceived", handle_ws_message))
+        page.on("websocket", handle_websocket)
 
-        # Tarayıcıyı kapatmadan önce yeterli süre bekleyin
-        page.wait_for_timeout(60000)  # 60 saniye bekler
+        # Hedef sayfaya gitme (google.com olarak ayarlıyoruz)
+        page.goto("http://google.com")
 
-        browser.close()
+        # Mesajları bir dosyaya yazma
+        game_id = selected_game.get("gameId", "unknown_game")
+        with open(f"websocket_messages_{game_id}.txt", "w") as file:
+            for message in websocket_messages:
+                file.write(message + "\n")
+
+        # Tarayıcıyı açık tutmak için sonsuz döngü
+        print("Tarayıcı açık durumda, kapatmak için manuel olarak kapatın.")
+        while True:
+            pass  # Tarayıcıyı açık tutmak için sonsuz döngü
+
+if __name__ == "__main__":
+    selected_game = {
+        'name': 'Example Game',
+        'gameId': 'example_game',
+        'prediction_file': 'example_game.py',
+        'data_type': 'json',
+        'track_type': 'browser',
+        'crash_key': 'game_result',
+        'prediction_key': 'FinishRound'
+    }
+    start_browser(selected_game)
